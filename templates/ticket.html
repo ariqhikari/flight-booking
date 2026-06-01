@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}FlyNow - E-Ticket{% endblock %}
+{% block content %}
+{% if error %}
+<div class="card">
+  <h1>Booking Failed</h1>
+  <p class="error">{{ error }}</p>
+  <a class="btn" href="{{ url_for('home') }}">Back to Search</a>
+</div>
+{% else %}
+<div class="card">
+  <p class="success">✓ Booking Successful</p>
+  <p class="muted">Your e-ticket has been issued.</p>
+  <p class="muted" style="margin-bottom: 2px;">Ticket ID</p>
+  <div class="ticket-id">{{ ticket.ticket_id }}</div>
+  <h2 style="margin-top: 20px;">E-Ticket Details</h2>
+  <ul class="summary">
+    <li>Passenger: <b>{{ ticket.passenger }}</b></li>
+    <li>Flight: <b>{{ ticket.flight_code }}</b> ({{ ticket.airline }})</li>
+    <li>Route: <b>{{ ticket.route }}</b></li>
+    <li>Departs: <b>{{ ticket.depart_time }}</b></li>
+    <li>Seat: <b>{{ ticket.seat }}</b></li>
+    <li>Amount Paid: <b class="price">Rp {{ "{:,.0f}".format(ticket.amount) }}</b></li>
+    <li>Status: <span class="pill">{{ ticket.status }}</span></li>
+  </ul>
+  <a class="btn" href="{{ url_for('home') }}">Book Another Flight</a>
+</div>
+{% endif %}
+{% endblock %}

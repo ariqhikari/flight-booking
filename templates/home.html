@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}FlyNow - Search Flights{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Search Flights</h1>
+  <p class="muted">Find a flight and book your seat in a few steps.</p>
+  <form action="{{ url_for('search') }}" method="get">
+    <div class="row">
+      <div>
+        <label for="origin">From</label>
+        <input id="origin" name="origin" placeholder="Jakarta" value="{{ origin }}" />
+      </div>
+      <div>
+        <label for="destination">To</label>
+        <input id="destination" name="destination" placeholder="Bali" value="{{ destination }}" />
+      </div>
+    </div>
+    <div style="margin-top: 16px;">
+      <button class="btn" type="submit">Search</button>
+    </div>
+  </form>
+  <p class="muted" style="margin-top: 14px;">
+    Available routes:
+    {% for r in routes %}<span class="pill">{{ r[0] }} → {{ r[1] }}</span> {% endfor %}
+  </p>
+</div>
+
+{% if flights is not none %}
+<div class="card">
+  <h2>Results{% if origin and destination %} — {{ origin }} → {{ destination }}{% endif %}</h2>
+  {% if flights %}
+    {% for flight in flights %}
+    <div class="flight">
+      <div>
+        <div class="code">{{ flight.code }} · {{ flight.airline }}</div>
+        <div class="meta">{{ flight.origin }} → {{ flight.destination }} · Departs {{ flight.depart_time }}</div>
+      </div>
+      <div style="text-align: right;">
+        <div class="price">Rp {{ "{:,.0f}".format(flight.base_price) }}</div>
+        <a class="btn" href="{{ url_for('select_seat', flight=flight.code) }}">Select Seat</a>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="error">No flights found for this route. Try Jakarta → Bali.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

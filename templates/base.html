@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}FlyNow{% endblock %}</title>
+    <style>
+      :root {
+        --blue: #3b82f6;
+        --blue-dark: #1d4ed8;
+        --bg: #eff6ff;
+        --green: #22c55e;
+        --orange: #f97316;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --card: #ffffff;
+        --border: #dbeafe;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      header {
+        background: var(--blue);
+        color: #fff;
+        padding: 16px 24px;
+      }
+      header a { color: #fff; text-decoration: none; }
+      .brand { font-weight: 700; font-size: 20px; letter-spacing: -0.3px; }
+      .brand span { opacity: 0.85; font-weight: 400; font-size: 13px; }
+      main { max-width: 760px; margin: 0 auto; padding: 28px 20px 60px; }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 22px;
+        box-shadow: 0 4px 16px rgba(30, 64, 175, 0.06);
+        margin-bottom: 18px;
+      }
+      h1 { font-size: 22px; margin: 0 0 4px; }
+      h2 { font-size: 16px; margin: 0 0 14px; color: var(--blue-dark); }
+      label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+      input, select {
+        width: 100%;
+        padding: 11px 12px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        font-size: 15px;
+        background: #fff;
+      }
+      .row { display: flex; gap: 14px; flex-wrap: wrap; }
+      .row > div { flex: 1; min-width: 180px; }
+      .btn {
+        display: inline-block;
+        background: var(--blue);
+        color: #fff;
+        border: none;
+        padding: 11px 18px;
+        border-radius: 9px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .btn:hover { background: var(--blue-dark); }
+      .btn-green { background: var(--green); }
+      .btn-green:hover { background: #16a34a; }
+      .flight {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        margin-bottom: 10px;
+      }
+      .flight .code { font-weight: 700; }
+      .flight .meta { font-size: 13px; color: var(--muted); }
+      .price { font-weight: 700; color: var(--blue-dark); }
+      .seats { display: flex; gap: 12px; flex-wrap: wrap; margin: 8px 0 4px; }
+      .seat {
+        border: 2px solid var(--blue);
+        color: var(--blue-dark);
+        border-radius: 10px;
+        padding: 16px 22px;
+        font-weight: 700;
+        cursor: pointer;
+        background: #fff;
+      }
+      .seat.taken {
+        border-color: #e2e8f0;
+        color: #cbd5e1;
+        cursor: not-allowed;
+        background: #f8fafc;
+      }
+      .pill {
+        display: inline-block;
+        background: var(--bg);
+        color: var(--blue-dark);
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .summary li { margin-bottom: 8px; color: var(--muted); }
+      .summary b { color: var(--ink); }
+      .success { color: var(--green); font-weight: 700; font-size: 18px; }
+      .error { color: #dc2626; font-weight: 600; }
+      .ticket-id {
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        color: var(--blue-dark);
+      }
+      .muted { color: var(--muted); font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="{{ url_for('home') }}">
+        <div class="brand">✈ FlyNow <span>Flight Booking Mini App</span></div>
+      </a>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+  </body>
+</html>

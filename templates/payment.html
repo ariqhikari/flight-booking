@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}FlyNow - Payment{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Payment</h1>
+  <h2>Booking Summary</h2>
+  <ul class="summary">
+    <li>Flight: <b>{{ flight.code }}</b> ({{ flight.airline }})</li>
+    <li>Route: <b>{{ flight.origin }} → {{ flight.destination }}</b></li>
+    <li>Departs: <b>{{ flight.depart_time }}</b></li>
+    <li>Seat: <b>{{ seat }}</b> <span class="pill">{{ travel_class | capitalize }}</span></li>
+    <li>Total (incl. 11% tax): <b class="price">Rp {{ "{:,.0f}".format(price) }}</b></li>
+  </ul>
+  <form action="{{ url_for('ticket') }}" method="post">
+    <input type="hidden" name="flight" value="{{ flight.code }}" />
+    <input type="hidden" name="seat" value="{{ seat }}" />
+    <div class="row">
+      <div>
+        <label for="passenger">Passenger name</label>
+        <input id="passenger" name="passenger" placeholder="Guest" />
+      </div>
+      <div>
+        <label for="method">Payment method</label>
+        <select id="method" name="method">
+          <option value="credit_card">Credit Card</option>
+          <option value="debit_card">Debit Card</option>
+          <option value="e_wallet">E-Wallet</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top: 16px;">
+      <button class="btn btn-green" type="submit">Pay Now</button>
+    </div>
+  </form>
+</div>
+<p class="muted"><a href="{{ url_for('select_seat', flight=flight.code) }}">← Back to seats</a></p>
+{% endblock %}
