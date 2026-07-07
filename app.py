@@ -8,16 +8,90 @@ that students can practice:
   * Integration Testing -> the Search -> Seat -> Payment -> Ticket flow
   * System Testing       -> the HTTP endpoints (/search, /api/search, ...)
 
-No database, no login, in-memory data only.
+No database, in-memory data only.
 """
 
 import os
+from datetime import datetime, timedelta, timezone
+
+import jwt
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 
 from services import flight_service, seat_service, payment_service, ticket_service
 
 app = Flask(__name__)
+app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "flynow-dev-secret")
+app.config["JWT_ALGORITHM"] = os.environ.get("JWT_ALGORITHM", "HS256")
+app.config["JWT_ACCESS_TOKEN_EXPIRES_MINUTES"] = int(
+    os.environ.get("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", "60")
+)
+app.config["LOGIN_USERNAME"] = os.environ.get("LOGIN_USERNAME", "admin")
+app.config["LOGIN_PASSWORD"] = os.environ.get("LOGIN_PASSWORD", "admin123")
+
+
+def api_success(message, data=None, status_code=200):
+    return (
+        jsonify(
+            {
+                "success": True,
+                "message": message,
+                "data": data,
+                "errors": None,
+            }
+        ),
+        status_code,
+    )
+
+
+def api_error(message, errors=None, status_code=400):
+    return (
+        jsonify(
+            {
+                "success": False,
+                "message": message,
+                "data": None,
+                "errors": errors,
+            }
+        ),
+        status_code,
+    )
+
+
+def create_access_token(username):
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": username,
+        "iat": now,
+        "exp": now
+        + timedelta(minutes=app.config["JWT_ACCESS_TOKEN_EXPIRES_MINUTES"]),
+    }
+    return jwt.encode(
+        payload,
+        app.config["JWT_SECRET_KEY"],
+        algorithm=app.config["JWT_ALGORITHM"],
+    )
+
+
+def get_bearer_token():
+    authorization = request.headers.get("Authorization", "")
+    if not authorization.startswith("Bearer "):
+        return None
+    return authorization.split(" ", 1)[1].strip() or None
+
+
+def verify_access_token(token):
+    try:
+        decoded = jwt.decode(
+            token,
+            app.config["JWT_SECRET_KEY"],
+            algorithms=[app.config["JWT_ALGORITHM"]],
+        )
+        return decoded.get("sub")
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
 
 
 @app.route("/")
@@ -116,12 +190,166 @@ def api_search():
     origin = request.args.get("origin", "")
     destination = request.args.get("destination", "")
     flights = flight_service.search_flights(origin, destination)
-    return jsonify(flights)
+    return api_success(
+        "Flights retrieved successfully",
+        {"items": flights},
+    )
+
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    payload = request.get_json(silent=True)
+    if not payload:
+        return api_error(
+            "Validation failed",
+            {
+                "username": "Username is required",
+                "password": "Password is required",
+            },
+            422,
+        )
+
+    username = str(payload.get("username", "")).strip()
+    password = str(payload.get("password", "")).strip()
+
+    if not username:
+        return api_error(
+            "Validation failed",
+            {"username": "Username is required"},
+            422,
+        )
+
+    if not password:
+        return api_error(
+            "Validation failed",
+            {"password": "Password is required"},
+            422,
+        )
+
+    if username != app.config["LOGIN_USERNAME"]:
+        return api_error(
+            "Invalid username or password",
+            None,
+            401,
+        )
+
+    if password != app.config["LOGIN_PASSWORD"]:
+        return api_error(
+            "Invalid username or password",
+            None,
+            401,
+        )
+
+    token = create_access_token(username)
+    return api_success(
+        "Login successful",
+        {
+            "user": {
+                "id": "USR001",
+                "name": "FlyNow User",
+                "username": username,
+                "role": "user",
+            },
+            "token": {
+                "access_token": token,
+                "token_type": "Bearer",
+                "expires_in": app.config["JWT_ACCESS_TOKEN_EXPIRES_MINUTES"] * 60,
+            },
+        },
+        200,
+    )
+
+
+@app.route("/api/book-seat", methods=["POST"])
+def api_book_seat():
+    token = get_bearer_token()
+    if not token or not verify_access_token(token):
+        return api_error(
+            "Unauthorized access",
+            None,
+            401,
+        )
+
+    payload = request.get_json(silent=True)
+    if not payload:
+        return api_error(
+            "Validation failed",
+            {
+                "flight": "Flight ID is required",
+                "seat": "Seat is required",
+            },
+            422,
+        )
+
+    flight_code = str(payload.get("flight", "")).strip().upper()
+    seat = str(payload.get("seat", "")).strip().upper()
+    passenger = str(payload.get("passenger", "Guest")).strip() or "Guest"
+
+    if not flight_code:
+        return api_error(
+            "Validation failed",
+            {"flight": "Flight ID is required"},
+            422,
+        )
+
+    if not seat:
+        return api_error(
+            "Validation failed",
+            {"seat": "Seat is required"},
+            422,
+        )
+
+    flight = flight_service.get_flight(flight_code)
+    if not flight:
+        return api_error(
+            "Flight not found",
+            None,
+            404,
+        )
+
+    if not seat_service.is_seat_available(flight_code, seat):
+        return api_error(
+            "Seat already booked",
+            {
+                "seat": "Seat %s is already booked for flight %s" % (seat, flight_code)
+            },
+            409,
+        )
+
+    reserved = seat_service.reserve_seat(flight_code, seat)
+    if not reserved:
+        return api_error(
+            "Seat already booked",
+            {
+                "seat": "Seat %s is already booked for flight %s" % (seat, flight_code)
+            },
+            409,
+        )
+
+    booking = {
+        "booking_id": ticket_service.next_ticket_id(),
+        "passenger": passenger,
+        "flight": {
+            "code": flight["code"],
+            "airline": flight["airline"],
+            "origin": flight["origin"],
+            "destination": flight["destination"],
+            "depart_time": flight["depart_time"],
+        },
+        "seat": seat,
+        "status": "CONFIRMED",
+    }
+
+    return api_success(
+        "Booking created successfully",
+        booking,
+        201,
+    )
 
 
 @app.route("/healthz")
 def healthz():
-    return {"status": "ok"}
+    return api_success("Service is healthy", {"status": "ok"})
 
 
 if __name__ == "__main__":
